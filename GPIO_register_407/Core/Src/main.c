@@ -113,6 +113,7 @@ void USART2_init()
 
 
 }
+//a littler change
 void send_byte(char data)
 {
 	uint32_t* USART2_SR = (uint32_t*)(USART2_base_adress + 0x00);
