@@ -34,6 +34,7 @@ void led_init();
 void button_init();
 #define GPIOA_base_adress 0x40020000
 #define GPIOC_base_adress 0x40020800
+#define USART2_base_adress  0x40004400
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -85,6 +86,39 @@ char button_read(int button_number){
 	uint32_t* GPIOC_IDR = (uint32_t*)(GPIOC_base_adress + 0x10);
 
 	return (*GPIOC_IDR>> button_number) & 0x01;
+}
+void UART2_init()
+{
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	uint32_t* GPIOA_MODER = (uint32_t*)(GPIOA_base_adress + 0x00);
+	uint32_t* GPIOA_AFRL  = (uint32_t*)(GPIOA_base_adress + 0x20);
+	*GPIOA_MODER &= ~(0xf<<4);
+	*GPIOA_MODER |= (0b1010<<4);
+	*GPIOA_AFRL &= ~(0xff<<8);
+	*GPIOA_AFRL |= (0b0111<<8)|(0b0111<<12);
+
+	__HAL_RCC_USART2_CLK_ENABLE();
+	uint32_t* USART2_BRR = (uint32_t*)(USART2_base_adress + 0x08);
+	*USART2_BRR |= (52<<4)|(1<<0);
+	uint32_t* USART2_CR1 = (uint32_t*)(USART2_base_adress + 0x0C);
+	*USART2_CR1 |= (1<<13) | (1<<3) | (1<<2);
+
+}
+void sent_byte(char data)
+{
+	uint32_t* USART2_SR = (uint32_t*)(USART2_base_adress + 0x00);
+	uint32_t* USART2_DR = (uint32_t*)(USART2_base_adress + 0x04);
+
+	while((*USART2_SR>> 7)&1 != 0);
+	*USART2_DR = data;
+	while((*USART2_SR>> 6)&1 == 0);
+}
+void send_data(char* msg, int lenght)
+{
+	for(int i = 0; i<lenght;i++)
+	{
+		sent_byte(msg[i]);
+	}
 }
 /* USER CODE END PM */
 
