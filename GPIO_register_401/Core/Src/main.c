@@ -35,10 +35,14 @@ void button_init();
 #define GPIOA_base_adress 0x40020000
 #define GPIOC_base_adress 0x40020800
 #define USART2_base_adress  0x40004400
+
+char data[128];
+int index = 0;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+
 void led_init()
 {
 	__HAL_RCC_GPIOA_CLK_ENABLE();
@@ -99,9 +103,12 @@ void UART2_init()
 
 	__HAL_RCC_USART2_CLK_ENABLE();
 	uint32_t* USART2_BRR = (uint32_t*)(USART2_base_adress + 0x08);
-	*USART2_BRR |= (52<<4)|(1<<0);
+	*USART2_BRR |= (104<<4)|(3<<0);
 	uint32_t* USART2_CR1 = (uint32_t*)(USART2_base_adress + 0x0C);
-	*USART2_CR1 |= (1<<13) | (1<<3) | (1<<2);
+	*USART2_CR1 |= (1<<13) | (1<<3) | (1<<2) |(1<<5);
+
+	uint32_t* NVIC_ISER1 = (uint32_t*)(0xE000E104);
+	*NVIC_ISER1 |= (0x01<<6);
 
 }
 void sent_byte(char data)
@@ -120,11 +127,40 @@ void send_data(char* msg, int lenght)
 		sent_byte(msg[i]);
 	}
 }
+char revc_byte()
+{
+	uint32_t* USART2_SR = (uint32_t*)(USART2_base_adress + 0x00);
+	uint32_t* USART2_DR = (uint32_t*)(USART2_base_adress + 0x04);
+	while((*USART2_SR >> 5) &1 ==0);
+	char temp = *USART2_DR;
+	return temp;
+}
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+void USART2_interup()
+{
+	data[index] = revc_byte();
+	index++;
+}
+void custom_vct_table()
+{
+	char* vectortable_base = 0;
+	char* newVectortable = (char*) 0x20000000;
+	for(int i = 0;i<0x188;i++)
+	{
+		newVectortable[i] = vectortable_base[i];
+	}
+	uint32_t* vtb_defaul_offset = (uint32_t*)0xE000ED08;
+	*vtb_defaul_offset = 0x20000000;
+
+	uint32_t* USART2_registor = (uint32_t*) 0x200000D8;
+	*USART2_registor = (uint32_t)USART2_interup|1;
+
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -158,6 +194,8 @@ int main(void)
   /* USER CODE BEGIN Init */
   led_init();
   button_init();
+  custom_vct_table();
+  UART2_init();
   /* USER CODE END Init */
 
   /* Configure the system clock */
