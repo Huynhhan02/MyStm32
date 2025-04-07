@@ -19,18 +19,17 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #define GPIOA_base_adress 0x40020000
 #define GPIOD_base_adress 0x40020C00
 #define SYSCFG_base_adress 0x40013800
 #define NVIC_base_adress 0xE000E100
 #define EXTI_base_adress 0x40013C00
 #define USART2_base_adress 0x40004400
-/* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
+char data[128];
+void DMA1_str5_interrupt();
+
+
 void led_init(){
 
 	__HAL_RCC_GPIOD_CLK_ENABLE();
@@ -110,6 +109,8 @@ void USART2_init()
 	*USART2_BRR = ((104<<4)|(3<<0));
 	uint32_t* USART2_CR1 = (uint32_t*)(USART2_base_adress + 0x0c);
 	*USART2_CR1 |= (0x01<<13)| (0x01<<3) | (0x01<<2);
+	uint32_t* USART2_CR3 = (uint32_t*)(USART2_base_adress + 0x14);
+	*USART2_CR3 |= 1<<6;
 
 
 }
@@ -130,33 +131,18 @@ void send_data(char* data, int data_leght)
 		send_byte(data[i]);
 	}
 }
-/* USER CODE END PTD */
+char recv_byte()
+{
+	uint32_t* USART2_SR = (uint32_t*)(USART2_base_adress + 0x00);
+	uint32_t* USART2_DR = (uint32_t*)(USART2_base_adress + 0x04);
 
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
+	while(((*USART2_SR>>5)&1)==0);
+	char data = * USART2_DR;
+	return data;
+}
 
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
 
 void EXTI0_ctHandler()
 {
@@ -179,23 +165,42 @@ void vector_table_init()
 	  *VectorTableOffset = 0x20000000;
 	  uint32_t* EXTI0_registor = (uint32_t*) 0x20000058;
 	  *EXTI0_registor = (uint32_t)EXTI0_ctHandler|1;
-}
-/* USER CODE END 0 */
+	  uint32_t* DMA1_str5_registor = (uint32_t*) 0x20000080;
+	  *DMA1_str5_registor = (uint32_t)DMA1_str5_interrupt|1;
 
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
+}
+void DMA_init()
+{
+	__HAL_RCC_DMA1_CLK_ENABLE();
+
+	uint32_t* DMA1_S5NDTR = (uint32_t*)(0x4002608c);
+	*DMA1_S5NDTR = 10;
+	uint32_t* DMA1_S5PAR = (uint32_t*)0x40026090;
+	//uint32_t* USART2_DR = (uint32_t*)(USART2_base_adress + 0x04);
+	*DMA1_S5PAR = 0x40004404;
+	uint32_t* DMA1_S5M0AR = (uint32_t*)(0x40026094);
+	*DMA1_S5M0AR = (uint32_t)data;
+	uint32_t* DMA1_S5CR = (uint32_t*)(0x40026088);
+	*DMA1_S5CR &= ~(0b111<<25);
+	*DMA1_S5CR &= ~(0b1<<9);
+	*DMA1_S5CR |= (0b100<<25 | 1<<10 |1<<0|1<<4);
+	uint32_t* NVIC_ISER0 = (uint32_t*) 0xE000E100;
+	*NVIC_ISER0 |= 1<<16;
+
+
+}
+void DMA1_str5_interrupt()
+{
+	toggle_led(led_3);
+//	DMA_init();
+	uint32_t* DMA1_HISR = (uint32_t*)(DMA1_BASE + 0x04);
+	*DMA1_HISR |= (1<<11);
+}
+
 int main(void)
 {
 
-  /* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -208,29 +213,22 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
+  DMA_init();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
   char msg[] = "im a stm32\r\n";
   /* USER CODE END 2 */
+  int8_t buff = 0;
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
+//	  data[buff] = recv_byte();
+//	  buff++;
 	  toggle_led(led_1);
-	 send_data(msg, sizeof(msg));
+//	 send_data(msg, sizeof(msg));
 	  HAL_Delay(2000);
   }
-  /* USER CODE END 3 */
 }
 
 /**
