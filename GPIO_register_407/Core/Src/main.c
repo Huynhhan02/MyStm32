@@ -26,9 +26,10 @@
 #define EXTI_base_adress 0x40013C00
 #define USART2_base_adress 0x40004400
 
+
 char data[128];
 void DMA1_str5_interrupt();
-
+int cout = 0;
 
 void led_init(){
 
@@ -197,6 +198,30 @@ void DMA1_str5_interrupt()
 	*DMA1_HISR |= (1<<11);
 }
 
+void TIM1_init()
+{
+	__HAL_RCC_TIM1_CLK_ENABLE();
+	uint32_t* TIM1_CR1 = (uint32_t*)(TIM1_BASE);
+	*TIM1_CR1 |= 1;
+	uint32_t* TIM1_DIER = (uint32_t*)(TIM1_BASE + 0x0c);
+	*TIM1_DIER |= 1;
+	uint32_t* TIM1_PSC = (uint32_t*)(TIM1_BASE + 0x28);
+	*TIM1_PSC = 16000;
+
+	uint32_t* TIM1_ARR = (uint32_t*)(TIM1_BASE + 0x2C);
+	*TIM1_ARR = 2000;
+
+	uint32_t* NVIC_ISER0 = (uint32_t*) 0xE000E100;
+	*NVIC_ISER0 |= 1<<25;
+}
+
+void TIM1_UP_TIM10_IRQHandler()
+{
+
+	toggle_led(led_4);
+	uint32_t* TIM1_SR = (uint32_t*)(TIM1_BASE + 0x10);
+	*TIM1_SR &= ~(1<<0);
+}
 int main(void)
 {
 
@@ -206,6 +231,7 @@ int main(void)
   /* USER CODE BEGIN Init */
   led_init();
   USART2_init();
+  TIM1_init();
   //button_init();
   EXTI_init();
   vector_table_init();
@@ -217,17 +243,20 @@ int main(void)
 
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-  char msg[] = "im a stm32\r\n";
+//  char msg[] = "im a stm32\r\n";
   /* USER CODE END 2 */
-  int8_t buff = 0;
-
+//  int8_t buff = 0;
+  uint32_t* TIM1_CNT = (uint32_t*)(TIM1_BASE + 0x24);
   while (1)
   {
 //	  data[buff] = recv_byte();
 //	  buff++;
-	  toggle_led(led_1);
+//	  toggle_led(led_1);
 //	 send_data(msg, sizeof(msg));
-	  HAL_Delay(2000);
+//	  HAL_Delay(2000);
+
+	  	cout = *TIM1_CNT;
+
   }
 }
 
