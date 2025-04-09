@@ -38,8 +38,10 @@ void led_init(){
 		uint32_t* GPIOD_OTYPER = (uint32_t*)(GPIOD_base_adress + 0x04);
 
 		*GPIOD_MODER &= ~(0b11111111<<24);
-		*GPIOD_MODER |= (0x55<<24);
+		*GPIOD_MODER |= (0b01010110<<24);
 		*GPIOD_OTYPER &= ~(0b1111<<12);
+
+
 }
 
 void button_init()
@@ -222,6 +224,35 @@ void TIM1_UP_TIM10_IRQHandler()
 	uint32_t* TIM1_SR = (uint32_t*)(TIM1_BASE + 0x10);
 	*TIM1_SR &= ~(1<<0);
 }
+
+
+void TIM4_init()
+{
+	__HAL_RCC_TIM4_CLK_ENABLE();
+	uint32_t* TIM4_CR1 = (uint32_t*)(TIM4_BASE);
+	*TIM4_CR1 |= 1;
+//	uint32_t* TIM4_DIER = (uint32_t*)(TIM4_BASE + 0x0c);
+//	*TIM4_DIER |= 1;
+	uint32_t* TIM4_PSC = (uint32_t*)(TIM4_BASE + 0x28);
+	*TIM4_PSC = 160-1;
+
+	uint32_t* TIM4_ARR = (uint32_t*)(TIM4_BASE + 0x2C);
+	*TIM4_ARR = 1000-1;
+	uint32_t* TIM4_CCR1 = (uint32_t*)(TIM4_BASE + 0x34);
+	*TIM4_CCR1 = 300;
+	uint32_t* TIM4_CCMR1 = (uint32_t*)(TIM4_BASE + 0x18);
+	*TIM4_CCMR1 &= ~(0x11);
+	*TIM4_CCMR1 |= (0b110<<4);
+
+	uint32_t* TIM4_CCER = (uint32_t*)(TIM4_BASE + 0x20);
+	*TIM4_CCER |= 1;
+	uint32_t* GPIOD_AFRH = (uint32_t*)(GPIOD_base_adress + 0x24);
+	*GPIOD_AFRH |= (0b0010<<16);
+
+
+//	uint32_t* NVIC_ISER0 = (uint32_t*) 0xE000E100;
+//	*NVIC_ISER0 |= 1<<25;
+}
 int main(void)
 {
 
@@ -240,22 +271,25 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
   DMA_init();
-
+  TIM4_init();
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
 //  char msg[] = "im a stm32\r\n";
   /* USER CODE END 2 */
 //  int8_t buff = 0;
-  uint32_t* TIM1_CNT = (uint32_t*)(TIM1_BASE + 0x24);
+//  uint32_t* TIM1_CNT = (uint32_t*)(TIM1_BASE + 0x24);
+  uint32_t* TIM4_CCR1 = (uint32_t*)(TIM4_BASE + 0x34);
+
   while (1)
   {
+	  *TIM4_CCR1 = 800;
 //	  data[buff] = recv_byte();
 //	  buff++;
 //	  toggle_led(led_1);
 //	 send_data(msg, sizeof(msg));
 //	  HAL_Delay(2000);
 
-	  	cout = *TIM1_CNT;
+//	  	cout = *TIM1_CNT;
 
   }
 }
