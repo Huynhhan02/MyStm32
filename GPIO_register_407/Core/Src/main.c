@@ -21,11 +21,12 @@
 
 
 #include "gpio_lib_custom.h"
+#include "UART_lib_custom.h"
+#include "RCC_lib_custom.h""
 #define GPIOD_base_adress 0x40020C00
 #define SYSCFG_base_adress 0x40013800
 #define NVIC_base_adress 0xE000E100
 #define EXTI_base_adress 0x40013C00
-#define USART2_base_adress 0x40004400
 
 
 char data[128];
@@ -34,15 +35,7 @@ int cout = 0;
 
 
 
-void button_init()
-{
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	uint32_t* GPIOA_MODER = (uint32_t*)(GPIOA_base_adress);
-	uint32_t* GPIOA_PUPDR = (uint32_t*)(GPIOA_base_adress + 0x0c);
 
-	*GPIOA_MODER &= ~(0b11<<0);
-	*GPIOA_PUPDR &= ~(0b11<<0);
-}
 void EXTI_init()
 {
 	uint32_t* SYSCFG_EXTICR1 = (uint32_t*) (SYSCFG_base_adress + 0x08);
@@ -61,53 +54,9 @@ void EXTI_init()
 }
 
 
-void USART2_init()
-{
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	uint32_t* GPIOA_MODER = (uint32_t*)(GPIOA_base_adress);
-	*GPIOA_MODER &= ~(0xf<<4);
-	*GPIOA_MODER |= (0b1010<<4);
 
-	uint32_t* GPIOA_AFRL = (uint32_t*)(GPIOA_base_adress + 0x20);
-	*GPIOA_AFRL &= ~(0xff<<8);
-	*GPIOA_AFRL |= (((0b0111)<<8)|(0b0111<<12));
-	__HAL_RCC_USART2_CLK_ENABLE();
-	//uint32_t* USART2_SR = (uint32_t*)(USART2_base_adress + 0x00);
-	uint32_t* USART2_BRR = (uint32_t*)(USART2_base_adress + 0x08);
-	*USART2_BRR = ((104<<4)|(3<<0));
-	uint32_t* USART2_CR1 = (uint32_t*)(USART2_base_adress + 0x0c);
-	*USART2_CR1 |= (0x01<<13)| (0x01<<3) | (0x01<<2);
-	uint32_t* USART2_CR3 = (uint32_t*)(USART2_base_adress + 0x14);
-	*USART2_CR3 |= 1<<6;
-
-
-}
 //a littler change
-void send_byte(char data)
-{
-	uint32_t* USART2_SR = (uint32_t*)(USART2_base_adress + 0x00);
-	uint32_t* USART2_DR = (uint32_t*)(USART2_base_adress + 0x04);
 
-	while(((*USART2_SR>>7) &1) != 1);
-	*USART2_DR = data;
-	while(((*USART2_SR>>6) &1) != 0);
-}
-void send_data(char* data, int data_leght)
-{
-	for(int i =0; i< data_leght; i++)
-	{
-		send_byte(data[i]);
-	}
-}
-char recv_byte()
-{
-	uint32_t* USART2_SR = (uint32_t*)(USART2_base_adress + 0x00);
-	uint32_t* USART2_DR = (uint32_t*)(USART2_base_adress + 0x04);
-
-	while(((*USART2_SR>>5)&1)==0);
-	char data = * USART2_DR;
-	return data;
-}
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -150,6 +99,7 @@ void DMA_init()
 	*DMA1_S5M0AR = (uint32_t)data;
 	uint32_t* DMA1_S5CR = (uint32_t*)(0x40026088);
 	*DMA1_S5CR &= ~(0b111<<25);
+
 	*DMA1_S5CR &= ~(0b1<<9);
 	*DMA1_S5CR |= (0b100<<25 | 1<<10 |1<<0|1<<4);
 	uint32_t* NVIC_ISER0 = (uint32_t*) 0xE000E100;
@@ -218,27 +168,33 @@ void TIM4_init()
 //	uint32_t* NVIC_ISER0 = (uint32_t*) 0xE000E100;
 //	*NVIC_ISER0 |= 1<<25;
 }
+
+
 int main(void)
 {
 
 
-  HAL_Init();
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
-	__HAL_RCC_GPIOD_CLK_ENABLE();
-  led_init();
-  USART2_init();
-  TIM1_init();
-  //button_init();
-  EXTI_init();
-  vector_table_init();
-  /* USER CODE END Init */
+	Clock_init(HSI);
+	AHB1_clk_setup();
+//  /* USER CODE BEGIN Init */
+//	__HAL_RCC_GPIOD_CLK_ENABLE();
 
-  /* Configure the system clock */
-  SystemClock_Config();
-  DMA_init();
-  TIM4_init();
-  MX_GPIO_Init();
+    led_init();
+
+//  USART2_init();
+//  TIM1_init();
+//  //button_init();
+//  EXTI_init();
+//  vector_table_init();
+//  /* USER CODE END Init */
+//
+//  /* Configure the system clock */
+//  SystemClock_Config();
+//  DMA_init();
+//  TIM4_init();
+//  MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
 //  char msg[] = "im a stm32\r\n";
   /* USER CODE END 2 */
@@ -248,7 +204,7 @@ int main(void)
 
   while (1)
   {
-	  *TIM4_CCR1 = 800;
+	  //*TIM4_CCR1 = 800;
 //	  data[buff] = recv_byte();
 //	  buff++;
 //	  toggle_led(led_1);
@@ -257,6 +213,12 @@ int main(void)
 
 //	  	cout = *TIM1_CNT;
 
+	 led_control(led_2, 1);
+	 HAL_Delay(100);
+
+	 led_control(led_2, 0);
+	 HAL_Delay(100);
+
   }
 }
 
@@ -264,42 +226,42 @@ int main(void)
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
+//void SystemClock_Config(void)
+//{
+//  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+//  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+//
+//  /** Configure the main internal regulator output voltage
+//  */
+//  __HAL_RCC_PWR_CLK_ENABLE();
+//  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+//
+//  /** Initializes the RCC Oscillators according to the specified parameters
+//  * in the RCC_OscInitTypeDef structure.
+//  */
+//  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+//  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+//  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+//  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+//  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//
+//  /** Initializes the CPU, AHB and APB buses clocks
+//  */
+//  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+//                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+//  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+//  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+//  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+//  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+//
+//  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//}
 
 /**
   * @brief GPIO Initialization Function
