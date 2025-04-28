@@ -47,10 +47,22 @@ typedef enum{
 	SPI2en = 14,
 	SPI3en,
 	UART2en = 17,
-	UART3en
+	UART3en,
+	UART4en,
+	UART5en,
+	I2C1en,
+	I2C2en,
+	I2C3en,
+	CAN1en = 25,
+	CAN2en,
+	PWRen = 28
 }RCC_APB1_bit;
+typedef enum{
+	SYSCFGen = 14,
+}RCC_APB2_bit;
 void Clock_init(RCC_type_t RCC_type);
 void AHB1_clk_setup(RCC_AHB1_bit AHB1_bit);
 void APB1_clk_setup(RCC_APB1_bit APB1_bit);
+void APB2_clk_setup(RCC_APB2_bit APB2_bit);
 
 #endif /* RCC_LIB_CUSTOM_RCC_LIB_CUSTOM_H_ */

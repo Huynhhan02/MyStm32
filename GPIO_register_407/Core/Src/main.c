@@ -162,7 +162,6 @@ int main(void)
 	AHB1_clk_setup(GPIODen);
 	APB1_clk_setup(UART2en);
 //  /* USER CODE BEGIN Init */
-//	__HAL_RCC_GPIOD_CLK_ENABLE();
 
     led_init();
 
@@ -170,11 +169,8 @@ int main(void)
 
   while (1)
   {
-	 led_control(led_2, 1);
-	 HAL_Delay(100);
-
-	 led_control(led_2, 0);
-	 HAL_Delay(100);
+	 toggle_led(led_4);
+	 HAL_Delay(1000);
   }
 
 }

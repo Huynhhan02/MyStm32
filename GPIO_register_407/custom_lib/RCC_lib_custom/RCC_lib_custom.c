@@ -47,5 +47,13 @@ void APB1_clk_setup(RCC_APB1_bit APB1_bit)
 {
 	uint32_t* RCC_APB1 = (uint32_t*)(RCC_base_adress + 0x40);
 	*RCC_APB1 |= (0x01<< APB1_bit ); // GPIOD_clk_enable
+
 }
 
+
+void APB2_clk_setup(RCC_APB2_bit APB2_bit)
+{
+	uint32_t* RCC_APB2 = (uint32_t*)(RCC_base_adress + 0x44);
+	*RCC_APB2 |= (0x01<< APB2_bit ); // GPIOD_clk_enable
+
+}
